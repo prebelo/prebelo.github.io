@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+  <channel>
+    <title>Your Site Title</title>
+    <link>https://www.yoursite.com</link>
+    <description>A brief description of your site</description>
+    image>
+    <title></title>
+      <url>https://prebelo.github.io/Logo-Business-Central_3.jpg</url>
+      <link></link>
+      </image>
+    <language>en-us</language>
+
+    <item>
+      <title>Business Central is Live in Montreal after a Successful Go Live this Weekend!!!</title>
+      <link></link>
+      <description>
+
+</description>
+      <pubDate></pubDate>
+      <guid></guid>
+    </item>
+
+    <!-- Repeat <item> for each post -->
+  </channel>
+</rss>
