@@ -1,0 +1,49 @@
+<div style="max-width: 500px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; font-family: Arial;">
+  <h3 style="margin-top: 0;">World Time Converter</h3>
+
+  <label>Select Date & Time (Montreal time):</label>
+  <input type="datetime-local" id="baseTime" style="width: 100%; padding: 6px; margin-bottom: 20px;">
+
+  <h4>Converted Times:</h4>
+  <div id="zones"></div>
+</div>
+
+<script>
+  const zones = [
+    { name: "Montreal, Canada", tz: "America/Toronto" },
+    { name: "Guangzhou, China", tz: "Asia/Shanghai" },
+    { name: "Melbourne, Australia", tz: "Australia/Melbourne" },
+    { name: "Stuttgart, Germany", tz: "Europe/Berlin" },
+    { name: "Phoenix, Arizona", tz: "America/Phoenix" }
+  ];
+
+  const zonesDiv = document.getElementById("zones");
+
+  function renderZones() {
+    zonesDiv.innerHTML = "";
+    zones.forEach(z => {
+      zonesDiv.innerHTML += `
+        <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #eee; border-radius: 6px;">
+          <strong>${z.name}</strong><br>
+          <span id="time-${z.tz.replace(/\//g, '_')}"></span>
+        </div>
+      `;
+    });
+  }
+
+  renderZones();
+
+  document.getElementById("baseTime").addEventListener("input", convertAll);
+
+  function convertAll() {
+    const input = document.getElementById("baseTime").value;
+    if (!input) return;
+
+    const baseDate = new Date(input);
+
+    zones.forEach(z => {
+      const converted = baseDate.toLocaleString("en-US", { timeZone: z.tz });
+      document.getElementById(`time-${z.tz.replace(/\//g, '_')}`).innerHTML = converted;
+    });
+  }
+</script>
