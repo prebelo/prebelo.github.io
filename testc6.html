@@ -1,0 +1,74 @@
+<div id="worldtime-app" style="max-width: 900px; font-family: Arial;">
+
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 style="margin:0;">World Time Timeline — Based on Montreal</h3>
+    <button id="darkToggle" style="padding:6px 12px; border-radius:6px; border:1px solid #888; cursor:pointer;">
+      Dark Mode
+    </button>
+  </div>
+
+  <div id="slider-container" style="margin:20px 0;">
+    <input type="range" id="timeSlider" min="0" max="1440" value="0" style="width:100%;">
+  </div>
+
+  <div id="timeline-container"></div>
+
+</div>
+
+<style>
+  #worldtime-app {
+    padding: 10px 0;
+  }
+
+  #worldtime-app.dark {
+    background:#1e1e1e;
+    color:#eee;
+    padding:20px;
+    border-radius:10px;
+  }
+
+  /* Slider styling */
+  #timeSlider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #123055, #cfe4ff);
+    outline: none;
+  }
+  #timeSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #123055;
+    cursor: pointer;
+  }
+  #timeSlider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #123055;
+    cursor: pointer;
+  }
+
+  #worldtime-app.dark #timeSlider {
+    background: linear-gradient(90deg, #0b1b33, #9fbfe8);
+  }
+  #worldtime-app.dark #timeSlider::-webkit-slider-thumb,
+  #worldtime-app.dark #timeSlider::-moz-range-thumb {
+    border-color:#9fbfe8;
+  }
+
+  .city-row {
+    margin-bottom: 40px;
+  }
+
+  .city-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom
