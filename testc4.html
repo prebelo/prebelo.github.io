@@ -103,6 +103,9 @@
   const slider = document.getElementById("timeSlider");
   const app = document.getElementById("worldtime-app");
 
+  let userDragging = false;
+  let lastDragTime = 0;
+
   function renderTimelines() {
     container.innerHTML = "";
 
@@ -205,7 +208,37 @@
     });
   }
 
-  slider.addEventListener("input", updateTimelines);
+  slider.addEventListener("input", () => {
+    userDragging = true;
+    lastDragTime = Date.now();
+    updateTimelines();
+  });
+
+  function animateSliderTo(target) {
+    const current = parseInt(slider.value);
+    const step = (target - current) / 20;
+
+    let frame = 0;
+    const anim = setInterval(() => {
+      frame++;
+      slider.value = current + step * frame;
+      updateTimelines();
+
+      if (frame >= 20) clearInterval(anim);
+    }, 20);
+  }
+
+  setInterval(() => {
+    if (userDragging && Date.now() - lastDragTime < 10000) return;
+
+    userDragging = false;
+
+    const now = new Date().toLocaleString("en-US", { timeZone: "America/Toronto" });
+    const d = new Date(now);
+    const minutes = d.getHours() * 60 + d.getMinutes();
+
+    animateSliderTo(minutes);
+  }, 1000);
 
   updateTimelines();
 
@@ -213,3 +246,4 @@
     app.classList.toggle("dark");
   };
 </script>
+
