@@ -1,35 +1,40 @@
-<div style="max-width: 500px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; font-family: Arial;">
-  <h3 style="margin-top: 0;">Live World Time (Based on Montreal)</h3>
+<div style="max-width: 700px; font-family: Arial;">
 
-  <div id="zones"></div>
+  <h3 style="margin-top: 0;">World Time — Based on Montreal (Live)</h3>
+
+  <div id="time-bars"></div>
+
 </div>
 
 <script>
   const zones = [
-    { name: "Montreal, Canada", tz: "America/Toronto" },
-    { name: "Guangzhou, China", tz: "Asia/Shanghai" },
-    { name: "Melbourne, Australia", tz: "Australia/Melbourne" },
-    { name: "Stuttgart, Germany", tz: "Europe/Berlin" },
-    { name: "Phoenix, Arizona", tz: "America/Phoenix" }
+    { name: "Montreal, Canada", tz: "America/Toronto", color: "#4a90e2" },
+    { name: "Guangzhou, China", tz: "Asia/Shanghai", color: "#7ed321" },
+    { name: "Melbourne, Australia", tz: "Australia/Melbourne", color: "#f5a623" },
+    { name: "Stuttgart, Germany", tz: "Europe/Berlin", color: "#bd10e0" },
+    { name: "Phoenix, Arizona", tz: "America/Phoenix", color: "#d0021b" }
   ];
 
-  const zonesDiv = document.getElementById("zones");
+  const container = document.getElementById("time-bars");
 
-  function renderZones() {
-    zonesDiv.innerHTML = "";
+  function renderBars() {
+    container.innerHTML = "";
     zones.forEach(z => {
-      zonesDiv.innerHTML += `
-        <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #eee; border-radius: 6px;">
-          <strong>${z.name}</strong><br>
-          <span id="time-${z.tz.replace(/\//g, '_')}" style="font-size: 1.2em;"></span>
+      container.innerHTML += `
+        <div style="margin-bottom: 12px;">
+          <div style="font-weight: bold; margin-bottom: 4px;">${z.name}</div>
+          <div style="background: ${z.color}; padding: 10px; border-radius: 6px; color: white; font-size: 1.2em;">
+            <span id="time-${z.tz.replace(/\//g, '_')}"></span>
+          </div>
         </div>
       `;
     });
   }
 
-  renderZones();
+  renderBars();
 
   function updateTimes() {
+    // Montreal current time as the base
     const montrealNow = new Date().toLocaleString("en-US", { timeZone: "America/Toronto" });
     const baseDate = new Date(montrealNow);
 
@@ -40,5 +45,5 @@
   }
 
   updateTimes();
-  setInterval(updateTimes, 1000); // update every second
+  setInterval(updateTimes, 1000);
 </script>
