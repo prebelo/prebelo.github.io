@@ -1,0 +1,263 @@
+<div id="worldtime-app" style="max-width: 900px; font-family: Arial;">
+
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 style="margin:0;">World Time Timeline — Based on Montreal</h3>
+    <button id="darkToggle" style="padding:6px 12px; border-radius:6px; border:1px solid #888; cursor:pointer;">
+      Dark Mode
+    </button>
+  </div>
+
+  <div id="slider-container" style="margin:20px 0;">
+    <input type="range" id="timeSlider" min="0" max="1440" value="0" style="width:100%;">
+  </div>
+
+  <div id="timeline-container"></div>
+
+</div>
+
+<style>
+  #worldtime-app { padding: 10px 0; }
+  #worldtime-app.dark { background:#1e1e1e; color:#eee; padding:20px; border-radius:10px; }
+
+  /* Slider */
+  #timeSlider {
+    -webkit-appearance:none;
+    width:100%;
+    height:6px;
+    border-radius:3px;
+    background:linear-gradient(90deg,#123055,#cfe4ff);
+    outline:none;
+  }
+  #timeSlider::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    width:16px; height:16px;
+    border-radius:50%;
+    background:white;
+    border:2px solid #123055;
+    cursor:pointer;
+  }
+
+  .city-row { margin-bottom:30px; }
+
+  .city-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:4px;
+  }
+
+  .city-name { font-weight:bold; display:flex; align-items:center; gap:8px; }
+  .city-date { color:#666; font-size:0.9em; }
+  #worldtime-app.dark .city-date { color:#ccc; }
+
+  .city-datetime { font-size:0.9em; margin-bottom:4px; }
+
+  .timeline-bar {
+    position:relative;
+    height:32px;
+    border-radius:6px;
+    overflow:hidden;
+    background:transparent;
+  }
+
+  .shade-day { background:#cfe4ff; }
+  .shade-night { background:#123055; }
+  #worldtime-app.dark .shade-day { background:#9fbfe8; }
+  #worldtime-app.dark .shade-night { background:#0b1b33; }
+
+  .time-marker {
+    position:absolute;
+    top:0;
+    width:2px;
+    height:100%;
+    background:#ff3b30;
+    z-index:3;
+  }
+
+  .tick-major, .tick-minor {
+    position:absolute;
+    width:1px;
+    background:rgba(0,0,0,0.35);
+    z-index:2;
+  }
+  .tick-major { height:100%; top:0; }
+  .tick-minor { height:50%; top:25%; }
+
+  #worldtime-app.dark .tick-major,
+  #worldtime-app.dark .tick-minor {
+    background:rgba(255,255,255,0.4);
+  }
+
+  .hour-labels {
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    margin-top:4px;
+    color:#666;
+  }
+  #worldtime-app.dark .hour-labels span { color:#bbb; }
+
+  /* NEW: grouped city labels */
+  .group-labels {
+    display:flex;
+    gap:20px;
+    font-weight:bold;
+    margin-bottom:4px;
+    align-items:center;
+  }
+  .group-labels img { margin-right:4px; }
+</style>
+
+<script>
+  /* ORIGINAL CITIES */
+  const cities = [
+    { name: "Montreal, Canada", tz: "America/Toronto", flag: "ca" },
+    { name: "Melbourne, Australia", tz: "Australia/Melbourne", flag: "au" },
+    { name: "Stuttgart, Germany", tz: "Europe/Berlin", flag: "de" },
+    { name: "Phoenix, Arizona", tz: "America/Phoenix", flag: "us" }
+  ];
+
+  /* NEW GROUPED ASIA ROW */
+  const groupedAsia = {
+    tz: "Asia/Shanghai",  // same offset for all 3
+    flags: ["cn", "hk", "sg"],
+    labels: ["Guangzhou", "Hong Kong", "Singapore"]
+  };
+
+  const container = document.getElementById("timeline-container");
+  const slider = document.getElementById("timeSlider");
+  const app = document.getElementById("worldtime-app");
+
+  const cityLat = {
+    "America/Toronto": 45.5,
+    "Australia/Melbourne": -37.8,
+    "Europe/Berlin": 48.8,
+    "America/Phoenix": 33.4,
+    "Asia/Shanghai": 23.1
+  };
+
+  function approximateSunTimes() { return { sunrise:6, sunset:18 }; }
+
+  function renderTimelines() {
+    container.innerHTML = "";
+
+    /* Render normal cities */
+    cities.forEach(city => {
+      const tzId = city.tz.replace(/\//g,'_');
+
+      const row = document.createElement("div");
+      row.className = "city-row";
+
+      row.innerHTML = `
+        <div class="city-header">
+          <div class="city-name" id="name-${tzId}">
+            <img src="https://flagcdn.com/24x18/${city.flag}.png"> ${city.name}
+          </div>
+          <div class="city-date" id="date-${tzId}"></div>
+        </div>
+
+        <div class="city-datetime" id="dt-${tzId}"></div>
+        <div class="timeline-bar" id="bar-${tzId}"></div>
+
+        <div class="hour-labels">
+          <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+        </div>
+      `;
+
+      container.appendChild(row);
+    });
+
+    /* Render grouped Asia row */
+    const asiaRow = document.createElement("div");
+    asiaRow.className = "city-row";
+
+    asiaRow.innerHTML = `
+      <div class="group-labels">
+        ${groupedAsia.flags.map((f,i)=>`
+          <span><img src="https://flagcdn.com/24x18/${f}.png">${groupedAsia.labels[i]}</span>
+        `).join("")}
+      </div>
+
+      <div class="timeline-bar" id="bar-asia"></div>
+
+      <div class="hour-labels">
+        <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+      </div>
+    `;
+
+    container.appendChild(asiaRow);
+  }
+
+  renderTimelines();
+
+  function updateTimelines() {
+    const minutes = parseInt(slider.value,10);
+    const base = new Date().toLocaleString("en-US",{ timeZone:"America/Toronto" });
+    const montreal = new Date(base);
+    montreal.setHours(0, minutes, 0, 0);
+
+    /* Update normal cities */
+    cities.forEach(city => {
+      const tzId = city.tz.replace(/\//g,'_');
+      const local = new Date(montreal.toLocaleString("en-US",{ timeZone:city.tz }));
+      const hours = local.getHours() + local.getMinutes()/60;
+
+      const bar = document.getElementById(`bar-${tzId}`);
+      bar.innerHTML = "";
+
+      const { sunrise, sunset } = approximateSunTimes();
+      const dayStart = sunrise/24*100;
+      const dayEnd = sunset/24*100;
+
+      bar.innerHTML += `
+        <div class="shade-night" style="left:0%;width:${dayStart}%;height:100%;position:absolute;"></div>
+        <div class="shade-day" style="left:${dayStart}%;width:${dayEnd-dayStart}%;height:100%;position:absolute;"></div>
+        <div class="shade-night" style="left:${dayEnd}%;width:${100-dayEnd}%;height:100%;position:absolute;"></div>
+      `;
+
+      for (let h=0; h<=24; h++) {
+        const cls = (h%3===0) ? "tick-major" : "tick-minor";
+        bar.innerHTML += `<div class="${cls}" style="left:${h/24*100}%;"></div>`;
+      }
+
+      bar.innerHTML += `<div class="time-marker" style="left:${hours/24*100}%;"></div>`;
+
+      document.getElementById(`date-${tzId}`).textContent =
+        local.toLocaleDateString("en-US",{ weekday:"short", month:"short", day:"2-digit" });
+
+      document.getElementById(`dt-${tzId}`).textContent =
+        local.toLocaleString("en-US",{ hour:"2-digit", minute:"2-digit", hour12:false });
+    });
+
+    /* Update grouped Asia row */
+    const asiaLocal = new Date(montreal.toLocaleString("en-US",{ timeZone:"Asia/Shanghai" }));
+    const asiaHours = asiaLocal.getHours() + asiaLocal.getMinutes()/60;
+
+    const barAsia = document.getElementById("bar-asia");
+    barAsia.innerHTML = "";
+
+    const { sunrise, sunset } = approximateSunTimes();
+    const dayStart = sunrise/24*100;
+    const dayEnd = sunset/24*100;
+
+    barAsia.innerHTML += `
+      <div class="shade-night" style="left:0%;width:${dayStart}%;height:100%;position:absolute;"></div>
+      <div class="shade-day" style="left:${dayStart}%;width:${dayEnd-dayStart}%;height:100%;position:absolute;"></div>
+      <div class="shade-night" style="left:${dayEnd}%;width:${100-dayEnd}%;height:100%;position:absolute;"></div>
+    `;
+
+    for (let h=0; h<=24; h++) {
+      const cls = (h%3===0) ? "tick-major" : "tick-minor";
+      barAsia.innerHTML += `<div class="${cls}" style="left:${h/24*100}%;"></div>`;
+    }
+
+    barAsia.innerHTML += `<div class="time-marker" style="left:${asiaHours/24*100}%;"></div>`;
+  }
+
+  slider.addEventListener("input", updateTimelines);
+  updateTimelines();
+
+  document.getElementById("darkToggle").onclick = () => {
+    app.classList.toggle("dark");
+  };
+</script>
