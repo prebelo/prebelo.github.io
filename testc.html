@@ -1,10 +1,6 @@
 <div style="max-width: 500px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; font-family: Arial;">
-  <h3 style="margin-top: 0;">World Time Converter</h3>
+  <h3 style="margin-top: 0;">Live World Time (Based on Montreal)</h3>
 
-  <label>Select Date & Time (Montreal time):</label>
-  <input type="datetime-local" id="baseTime" style="width: 100%; padding: 6px; margin-bottom: 20px;">
-
-  <h4>Converted Times:</h4>
   <div id="zones"></div>
 </div>
 
@@ -25,7 +21,7 @@
       zonesDiv.innerHTML += `
         <div style="margin-bottom: 12px; padding: 10px; border: 1px solid #eee; border-radius: 6px;">
           <strong>${z.name}</strong><br>
-          <span id="time-${z.tz.replace(/\//g, '_')}"></span>
+          <span id="time-${z.tz.replace(/\//g, '_')}" style="font-size: 1.2em;"></span>
         </div>
       `;
     });
@@ -33,17 +29,16 @@
 
   renderZones();
 
-  document.getElementById("baseTime").addEventListener("input", convertAll);
-
-  function convertAll() {
-    const input = document.getElementById("baseTime").value;
-    if (!input) return;
-
-    const baseDate = new Date(input);
+  function updateTimes() {
+    const montrealNow = new Date().toLocaleString("en-US", { timeZone: "America/Toronto" });
+    const baseDate = new Date(montrealNow);
 
     zones.forEach(z => {
       const converted = baseDate.toLocaleString("en-US", { timeZone: z.tz });
       document.getElementById(`time-${z.tz.replace(/\//g, '_')}`).innerHTML = converted;
     });
   }
+
+  updateTimes();
+  setInterval(updateTimes, 1000); // update every second
 </script>
