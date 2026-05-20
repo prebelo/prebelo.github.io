@@ -206,86 +206,85 @@
     container.appendChild(asiaRow);
   }
 
-  renderTimelines();
+  function renderTimelines() {
+  container.innerHTML = "";
 
-  function updateTimelines() {
-    const minutes = parseInt(slider.value,10);
-    const base = new Date().toLocaleString("en-US",{ timeZone:"America/Toronto" });
-    const montreal = new Date(base);
-    montreal.setHours(0, minutes, 0, 0);
+  /* 1 — Render Montreal first */
+  const montreal = cities[0];
+  const montrealId = montreal.tz.replace(/\//g,'_');
 
-    /* UPDATE NORMAL CITIES */
-    cities.forEach(city => {
-      const tzId = city.tz.replace(/\//g,'_');
-      const local = new Date(montreal.toLocaleString("en-US",{ timeZone:city.tz }));
-      const hours = local.getHours() + local.getMinutes()/60;
+  const montrealRow = document.createElement("div");
+  montrealRow.className = "city-row";
 
-      const bar = document.getElementById(`bar-${tzId}`);
-      bar.innerHTML = "";
+  montrealRow.innerHTML = `
+    <div class="city-header">
+      <div class="city-name" id="name-${montrealId}">
+        <img src="https://flagcdn.com/24x18/${montreal.flag}.png"> ${montreal.name}
+      </div>
+      <div class="city-date" id="date-${montrealId}"></div>
+    </div>
 
-      const { sunrise, sunset } = approximateSunTimes();
-      const dayStart = sunrise/24*100;
-      const dayEnd = sunset/24*100;
+    <div class="city-datetime" id="dt-${montrealId}"></div>
+    <div class="timeline-bar" id="bar-${montrealId}"></div>
 
-      bar.innerHTML += `
-        <div class="shade-night" style="left:0%;width:${dayStart}%;height:100%;position:absolute;"></div>
-        <div class="shade-day" style="left:${dayStart}%;width:${dayEnd-dayStart}%;height:100%;position:absolute;"></div>
-        <div class="shade-night" style="left:${dayEnd}%;width:${100-dayEnd}%;height:100%;position:absolute;"></div>
-      `;
+    <div class="hour-labels">
+      <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+    </div>
+  `;
+  container.appendChild(montrealRow);
 
-      for (let h=0; h<=24; h++) {
-        const cls = (h%3===0) ? "tick-major" : "tick-minor";
-        bar.innerHTML += `<div class="${cls}" style="left:${h/24*100}%;"></div>`;
-      }
+  /* 2 — Render GROUPED ASIA under Montreal */
+  const asiaRow = document.createElement("div");
+  asiaRow.className = "city-row";
 
-      bar.innerHTML += `<div class="time-marker" style="left:${hours/24*100}%;"></div>`;
+  let labelsHTML = "";
+  asiaGroup.forEach(city => {
+    labelsHTML += `
+      <div>
+        <img src="https://flagcdn.com/24x18/${city.flag}.png">
+        <span id="label-${city.tz.replace(/\//g,'_')}"></span>
+      </div>
+    `;
+  });
 
-      const { short, long } = getTZLabels(local, city.tz);
+  asiaRow.innerHTML = `
+    <div class="group-stack">${labelsHTML}</div>
+    <div class="timeline-bar" id="bar-asia"></div>
+    <div class="hour-labels">
+      <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+    </div>
+  `;
+  container.appendChild(asiaRow);
 
-      document.getElementById(`name-${tzId}`).innerHTML =
-        `<img src="https://flagcdn.com/24x18/${city.flag}.png"> ${city.name} (${short} - ${long})`;
+  /* 3 — Render the remaining cities */
+  const remaining = cities.slice(1); // everything except Montreal
 
-      document.getElementById(`date-${tzId}`).textContent =
-        local.toLocaleDateString("en-US",{ weekday:"short", month:"short", day:"2-digit" });
+  remaining.forEach(city => {
+    const tzId = city.tz.replace(/\//g,'_');
 
-      document.getElementById(`dt-${tzId}`).textContent =
-        local.toLocaleString("en-US",{ hour:"2-digit", minute:"2-digit", hour12:false });
-    });
+    const row = document.createElement("div");
+    row.className = "city-row";
 
-    /* UPDATE GROUPED ASIA */
-    const asiaLocal = new Date(montreal.toLocaleString("en-US",{ timeZone:"Asia/Shanghai" }));
-    const asiaHours = asiaLocal.getHours() + asiaLocal.getMinutes()/60;
+    row.innerHTML = `
+      <div class="city-header">
+        <div class="city-name" id="name-${tzId}">
+          <img src="https://flagcdn.com/24x18/${city.flag}.png"> ${city.name}
+        </div>
+        <div class="city-date" id="date-${tzId}"></div>
+      </div>
 
-    const barAsia = document.getElementById("bar-asia");
-    barAsia.innerHTML = "";
+      <div class="city-datetime" id="dt-${tzId}"></div>
+      <div class="timeline-bar" id="bar-${tzId}"></div>
 
-    const { sunrise, sunset } = approximateSunTimes();
-    const dayStart = sunrise/24*100;
-    const dayEnd = sunset/24*100;
-
-    barAsia.innerHTML += `
-      <div class="shade-night" style="left:0%;width:${dayStart}%;height:100%;position:absolute;"></div>
-      <div class="shade-day" style="left:${dayStart}%;width:${dayEnd-dayStart}%;height:100%;position:absolute;"></div>
-      <div class="shade-night" style="left:${dayEnd}%;width:${100-dayEnd}%;height:100%;position:absolute;"></div>
+      <div class="hour-labels">
+        <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+      </div>
     `;
 
-    for (let h=0; h<=24; h++) {
-      const cls = (h%3===0) ? "tick-major" : "tick-minor";
-      barAsia.innerHTML += `<div class="${cls}" style="left:${h/24*100}%;"></div>`;
-    }
+    container.appendChild(row);
+  });
+}
 
-    barAsia.innerHTML += `<div class="time-marker" style="left:${asiaHours/24*100}%;"></div>`;
-
-    /* UPDATE LABELS FOR EACH ASIA CITY */
-    asiaGroup.forEach(city => {
-      const tzId = city.tz.replace(/\//g,'_');
-      const local = new Date(montreal.toLocaleString("en-US",{ timeZone:city.tz }));
-      const { short, long } = getTZLabels(local, city.tz);
-
-      document.getElementById(`label-${tzId}`).textContent =
-        `${city.name} (${short} - ${long})`;
-    });
-  }
 
   slider.addEventListener("input", updateTimelines);
   updateTimelines();
