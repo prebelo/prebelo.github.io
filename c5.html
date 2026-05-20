@@ -29,14 +29,14 @@
   }
   #timeSlider::-webkit-slider-thumb {
     -webkit-appearance:none;
-    width:16px; height:16px;
+    width:18px; height:18px;
     border-radius:50%;
     background:white;
     border:2px solid #123055;
     cursor:pointer;
   }
 
-  .city-row { margin-bottom:30px; }
+  .city-row { margin-bottom:40px; }
 
   .city-header {
     display:flex;
@@ -51,6 +51,16 @@
 
   .city-datetime { font-size:0.9em; margin-bottom:4px; }
 
+  /* NEW centered time label above each bar */
+  .city-time-label {
+    text-align:center;
+    font-size:12px;
+    font-weight:bold;
+    margin-bottom:4px;
+    color:#333;
+  }
+  #worldtime-app.dark .city-time-label { color:#ddd; }
+
   .timeline-bar {
     position:relative;
     height:32px;
@@ -64,13 +74,26 @@
   #worldtime-app.dark .shade-day { background:#9fbfe8; }
   #worldtime-app.dark .shade-night { background:#0b1b33; }
 
+  /* NEW realistic time marker */
   .time-marker {
     position:absolute;
     top:0;
     width:2px;
     height:100%;
     background:#ff3b30;
-    z-index:3;
+    z-index:4;
+  }
+  .time-marker::after {
+    content:"";
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    width:14px;
+    height:14px;
+    background:#ff3b30;
+    border-radius:50%;
+    box-shadow:0 0 6px rgba(255,59,48,0.6);
   }
 
   .tick-major, .tick-minor {
@@ -96,7 +119,7 @@
   }
   #worldtime-app.dark .hour-labels span { color:#bbb; }
 
-  /* NEW: stacked labels for grouped cities */
+  /* Grouped Asia labels */
   .group-stack {
     margin-bottom:6px;
     font-size:0.9em;
@@ -171,6 +194,7 @@
       </div>
 
       <div class="city-datetime" id="dt-${montrealId}"></div>
+      <div class="city-time-label" id="time-label-${montrealId}"></div>
       <div class="timeline-bar" id="bar-${montrealId}"></div>
 
       <div class="hour-labels">
@@ -195,6 +219,7 @@
 
     asiaRow.innerHTML = `
       <div class="group-stack">${labelsHTML}</div>
+      <div class="city-time-label" id="time-label-asia"></div>
       <div class="timeline-bar" id="bar-asia"></div>
       <div class="hour-labels">
         <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
@@ -220,6 +245,7 @@
         </div>
 
         <div class="city-datetime" id="dt-${tzId}"></div>
+        <div class="city-time-label" id="time-label-${tzId}"></div>
         <div class="timeline-bar" id="bar-${tzId}"></div>
 
         <div class="hour-labels">
@@ -232,6 +258,42 @@
   }
 
   renderTimelines();
+
+  /* AUTO-UPDATE LOGIC */
+  let userDragging = false;
+  let lastDragTime = 0;
+
+  slider.addEventListener("input", () => {
+    userDragging = true;
+    lastDragTime = Date.now();
+    updateTimelines();
+  });
+
+  function animateSliderTo(target) {
+    const current = parseInt(slider.value, 10);
+    const steps = 20;
+    const step = (target - current) / steps;
+    let frame = 0;
+
+    const anim = setInterval(() => {
+      frame++;
+      slider.value = current + step * frame;
+      updateTimelines();
+      if (frame >= steps) clearInterval(anim);
+    }, 20);
+  }
+
+  setInterval(() => {
+    if (userDragging && Date.now() - lastDragTime < 10000) return;
+
+    userDragging = false;
+
+    const now = new Date().toLocaleString("en-US", { timeZone: "America/Toronto" });
+    const d = new Date(now);
+    const minutes = d.getHours() * 60 + d.getMinutes();
+
+    animateSliderTo(minutes);
+  }, 1000);
 
   function updateTimelines() {
     const minutes = parseInt(slider.value,10);
@@ -275,6 +337,16 @@
 
       document.getElementById(`dt-${tzId}`).textContent =
         local.toLocaleString("en-US",{ hour:"2-digit", minute:"2-digit", hour12:false });
+
+      document.getElementById(`time-label-${tzId}`).textContent =
+        local.toLocaleString("en-US", {
+          weekday:"long",
+          month:"long",
+          day:"2-digit",
+          hour:"2-digit",
+          minute:"2-digit",
+          hour12:false
+        });
     });
 
     /* UPDATE GROUPED ASIA */
@@ -300,6 +372,16 @@
     }
 
     barAsia.innerHTML += `<div class="time-marker" style="left:${asiaHours/24*100}%;"></div>`;
+
+    document.getElementById("time-label-asia").textContent =
+      asiaLocal.toLocaleString("en-US", {
+        weekday:"long",
+        month:"long",
+        day:"2-digit",
+        hour:"2-digit",
+        minute:"2-digit",
+        hour12:false
+      });
 
     /* UPDATE LABELS FOR EACH ASIA CITY */
     asiaGroup.forEach(city => {
