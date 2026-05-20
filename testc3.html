@@ -1,0 +1,215 @@
+<div id="worldtime-app" style="max-width: 900px; font-family: Arial;">
+
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 style="margin:0;">World Time Timeline — Based on Montreal</h3>
+    <button id="darkToggle" style="padding:6px 12px; border-radius:6px; border:1px solid #888; cursor:pointer;">
+      Dark Mode
+    </button>
+  </div>
+
+  <div id="slider-container" style="margin:20px 0;">
+    <input type="range" id="timeSlider" min="0" max="1440" value="0" style="width:100%;">
+  </div>
+
+  <div id="timeline-container"></div>
+
+</div>
+
+<style>
+  #worldtime-app.dark {
+    background:#1e1e1e;
+    color:#eee;
+    padding:20px;
+    border-radius:10px;
+  }
+  #worldtime-app.dark .timeline-bar {
+    background:#333;
+  }
+  #worldtime-app.dark .hour-labels span {
+    color:#bbb;
+  }
+
+  .city-row {
+    margin-bottom: 26px;
+  }
+  .city-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:4px;
+  }
+  .city-name {
+    font-weight:bold;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .city-date {
+    color:#666;
+    font-size:0.9em;
+  }
+  #worldtime-app.dark .city-date {
+    color:#ccc;
+  }
+
+  .timeline-bar {
+    position:relative;
+    height:32px;
+    border-radius:6px;
+    overflow:hidden;
+  }
+
+  .shade-day {
+    background:#f7f7f7;
+  }
+  .shade-night {
+    background:#d0d0d0;
+  }
+
+  #worldtime-app.dark .shade-day {
+    background:#444;
+  }
+  #worldtime-app.dark .shade-night {
+    background:#222;
+  }
+
+  .time-marker {
+    position:absolute;
+    top:0;
+    width:2px;
+    height:100%;
+    background:#ff3b30;
+  }
+
+  .hour-labels {
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    margin-top:4px;
+    color:#666;
+  }
+</style>
+
+<script>
+  const cities = [
+    { name: "Montreal, Canada", tz: "America/Toronto", flag: "ca" },
+    { name: "Guangzhou, China", tz: "Asia/Shanghai", flag: "cn" },
+    { name: "Melbourne, Australia", tz: "Australia/Melbourne", flag: "au" },
+    { name: "Stuttgart, Germany", tz: "Europe/Berlin", flag: "de" },
+    { name: "Phoenix, Arizona", tz: "America/Phoenix", flag: "us" }
+  ];
+
+  const container = document.getElementById("timeline-container");
+  const slider = document.getElementById("timeSlider");
+  const app = document.getElementById("worldtime-app");
+
+  function renderTimelines() {
+    container.innerHTML = "";
+
+    cities.forEach(city => {
+      const row = document.createElement("div");
+      row.className = "city-row";
+
+      row.innerHTML = `
+        <div class="city-header">
+          <div class="city-name">
+            <img src="https://flagcdn.com/24x18/${city.flag}.png">
+            ${city.name}
+          </div>
+          <div class="city-date" id="date-${city.tz.replace(/\//g, '_')}"></div>
+        </div>
+
+        <div class="timeline-bar" id="bar-${city.tz.replace(/\//g, '_')}"></div>
+
+        <div class="hour-labels">
+          <span>00:00</span>
+          <span>06:00</span>
+          <span>12:00</span>
+          <span>18:00</span>
+          <span>24:00</span>
+        </div>
+      `;
+
+      container.appendChild(row);
+    });
+  }
+
+  renderTimelines();
+
+  function approximateSunTimes(lat) {
+    return { sunrise: 6, sunset: 18 };
+  }
+
+  const cityLat = {
+    "America/Toronto": 45.5,
+    "Asia/Shanghai": 23.1,
+    "Australia/Melbourne": -37.8,
+    "Europe/Berlin": 48.8,
+    "America/Phoenix": 33.4
+  };
+
+  function updateTimelines() {
+    const minutes = parseInt(slider.value);
+    const montrealDate = new Date();
+    montrealDate.setHours(0, minutes, 0, 0);
+
+    cities.forEach(city => {
+      const local = new Date(montrealDate.toLocaleString("en-US", { timeZone: city.tz }));
+      const hours = local.getHours() + local.getMinutes() / 60;
+
+      const bar = document.getElementById(`bar-${city.tz.replace(/\//g, '_')}`);
+      bar.innerHTML = "";
+
+      const { sunrise, sunset } = approximateSunTimes(cityLat[city.tz]);
+
+      const dayStart = (sunrise / 24) * 100;
+      const dayEnd = (sunset / 24) * 100;
+
+      const night1 = document.createElement("div");
+      night1.className = "shade-night";
+      night1.style.position = "absolute";
+      night1.style.left = "0%";
+      night1.style.width = dayStart + "%";
+      night1.style.height = "100%";
+
+      const day = document.createElement("div");
+      day.className = "shade-day";
+      day.style.position = "absolute";
+      day.style.left = dayStart + "%";
+      day.style.width = (dayEnd - dayStart) + "%";
+      day.style.height = "100%";
+
+      const night2 = document.createElement("div");
+      night2.className = "shade-night";
+      night2.style.position = "absolute";
+      night2.style.left = dayEnd + "%";
+      night2.style.width = (100 - dayEnd) + "%";
+      night2.style.height = "100%";
+
+      bar.appendChild(night1);
+      bar.appendChild(day);
+      bar.appendChild(night2);
+
+      const marker = document.createElement("div");
+      marker.className = "time-marker";
+      marker.style.left = (hours / 24) * 100 + "%";
+      bar.appendChild(marker);
+
+      const dateStr = local.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "2-digit"
+      });
+
+      document.getElementById(`date-${city.tz.replace(/\//g, '_')}`).innerHTML = dateStr;
+    });
+  }
+
+  slider.addEventListener("input", updateTimelines);
+
+  updateTimelines();
+
+  document.getElementById("darkToggle").onclick = () => {
+    app.classList.toggle("dark");
+  };
+</script>
