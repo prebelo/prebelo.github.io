@@ -64,11 +64,311 @@
   }
 
   .city-row {
-    margin-bottom: 40px;
+    margin-bottom: 30px;
   }
 
   .city-header {
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom
+    margin-bottom:4px;
+  }
+
+  .city-name {
+    font-weight:bold;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .city-date {
+    color:#666;
+    font-size:0.9em;
+  }
+
+  #worldtime-app.dark .city-date {
+    color:#ccc;
+  }
+
+  .city-datetime {
+    font-size:0.9em;
+    margin-bottom:4px;
+  }
+
+  .timeline-bar {
+    position:relative;
+    height:32px;
+    border-radius:6px;
+    overflow:hidden;
+    background:transparent;
+  }
+
+  .shade-day {
+    background:#cfe4ff; /* light grey-blue */
+  }
+  .shade-night {
+    background:#123055; /* dark blue */
+  }
+
+  #worldtime-app.dark .shade-day {
+    background:#9fbfe8;
+  }
+  #worldtime-app.dark .shade-night {
+    background:#0b1b33;
+  }
+
+  .time-marker {
+    position:absolute;
+    top:0;
+    width:2px;
+    height:100%;
+    background:#ff3b30;
+    z-index:3;
+  }
+
+  .hour-labels {
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    margin-top:4px;
+    color:#666;
+  }
+
+  #worldtime-app.dark .hour-labels span {
+    color:#bbb;
+  }
+
+  .tick-major,
+  .tick-minor {
+    position:absolute;
+    width:1px;
+    background:rgba(0,0,0,0.35);
+    z-index:2;
+  }
+
+  .tick-major {
+    height:100%;
+    top:0;
+  }
+
+  .tick-minor {
+    height:50%;
+    top:25%;
+  }
+
+  #worldtime-app.dark .tick-major,
+  #worldtime-app.dark .tick-minor {
+    background:rgba(255,255,255,0.4);
+  }
+</style>
+
+<script>
+  const cities = [
+    { name: "Montreal, Canada", tz: "America/Toronto", flag: "ca" },
+    { name: "Guangzhou, China", tz: "Asia/Shanghai", flag: "cn" },
+    { name: "Melbourne, Australia", tz: "Australia/Melbourne", flag: "au" },
+    { name: "Stuttgart, Germany", tz: "Europe/Berlin", flag: "de" },
+    { name: "Phoenix, Arizona", tz: "America/Phoenix", flag: "us" }
+  ];
+
+  const container = document.getElementById("timeline-container");
+  const slider = document.getElementById("timeSlider");
+  const app = document.getElementById("worldtime-app");
+
+  let userDragging = false;
+  let lastDragTime = 0;
+
+  function renderTimelines() {
+    container.innerHTML = "";
+
+    cities.forEach(city => {
+      const row = document.createElement("div");
+      row.className = "city-row";
+
+      const tzId = city.tz.replace(/\//g, '_');
+
+      row.innerHTML = `
+        <div class="city-header">
+          <div class="city-name" id="name-${tzId}">
+            <img src="https://flagcdn.com/24x18/${city.flag}.png">
+            ${city.name}
+          </div>
+          <div class="city-date" id="date-${tzId}"></div>
+        </div>
+
+        <div class="city-datetime" id="dt-${tzId}"></div>
+
+        <div class="timeline-bar" id="bar-${tzId}"></div>
+
+        <div class="hour-labels">
+          <span>00:00</span>
+          <span>06:00</span>
+          <span>12:00</span>
+          <span>18:00</span>
+          <span>24:00</span>
+        </div>
+      `;
+
+      container.appendChild(row);
+    });
+  }
+
+  renderTimelines();
+
+  function approximateSunTimes(lat) {
+    // Hybrid/approximate: keep simple 6–18, but could vary by latitude if desired
+    return { sunrise: 6, sunset: 18 };
+  }
+
+  const cityLat = {
+    "America/Toronto": 45.5,
+    "Asia/Shanghai": 23.1,
+    "Australia/Melbourne": -37.8,
+    "Europe/Berlin": 48.8,
+    "America/Phoenix": 33.4
+  };
+
+  function getTZLabels(date, tz) {
+    const shortFmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "short"
+    });
+    const longFmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "long"
+    });
+
+    const shortParts = shortFmt.formatToParts(date);
+    const longParts = longFmt.formatToParts(date);
+
+    const short = shortParts.find(p => p.type === "timeZoneName")?.value || "";
+    const long = longParts.find(p => p.type === "timeZoneName")?.value || "";
+
+    return { short, long };
+  }
+
+  function updateTimelines() {
+    const minutes = parseInt(slider.value, 10);
+    const montrealNow = new Date().toLocaleString("en-US", { timeZone: "America/Toronto" });
+    const montrealBase = new Date(montrealNow);
+    montrealBase.setHours(0, minutes, 0, 0);
+
+    cities.forEach(city => {
+      const tzId = city.tz.replace(/\//g, '_');
+      const local = new Date(montrealBase.toLocaleString("en-US", { timeZone: city.tz }));
+      const hours = local.getHours() + local.getMinutes() / 60;
+
+      const bar = document.getElementById(`bar-${tzId}`);
+      bar.innerHTML = "";
+
+      const { sunrise, sunset } = approximateSunTimes(cityLat[city.tz]);
+      const dayStart = (sunrise / 24) * 100;
+      const dayEnd = (sunset / 24) * 100;
+
+      const night1 = document.createElement("div");
+      night1.className = "shade-night";
+      night1.style.position = "absolute";
+      night1.style.left = "0%";
+      night1.style.width = dayStart + "%";
+      night1.style.height = "100%";
+
+      const day = document.createElement("div");
+      day.className = "shade-day";
+      day.style.position = "absolute";
+      day.style.left = dayStart + "%";
+      day.style.width = (dayEnd - dayStart) + "%";
+      day.style.height = "100%";
+
+      const night2 = document.createElement("div");
+      night2.className = "shade-night";
+      night2.style.position = "absolute";
+      night2.style.left = dayEnd + "%";
+      night2.style.width = (100 - dayEnd) + "%";
+      night2.style.height = "100%";
+
+      bar.appendChild(night1);
+      bar.appendChild(day);
+      bar.appendChild(night2);
+
+      // Hour ticks: major every 3h, minor every 1h
+      for (let h = 0; h <= 24; h++) {
+        const left = (h / 24) * 100;
+        const tick = document.createElement("div");
+        if (h % 3 === 0) {
+          tick.className = "tick-major";
+        } else {
+          tick.className = "tick-minor";
+        }
+        tick.style.left = left + "%";
+        bar.appendChild(tick);
+      }
+
+      const marker = document.createElement("div");
+      marker.className = "time-marker";
+      marker.style.left = (hours / 24) * 100 + "%";
+      bar.appendChild(marker);
+
+      const dateStr = local.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "2-digit"
+      });
+      document.getElementById(`date-${tzId}`).textContent = dateStr;
+
+      const dtStr = local.toLocaleString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+      document.getElementById(`dt-${tzId}`).textContent = dtStr;
+
+      const { short, long } = getTZLabels(local, city.tz);
+      const nameEl = document.getElementById(`name-${tzId}`);
+      nameEl.innerHTML = `
+        <img src="https://flagcdn.com/24x18/${city.flag}.png">
+        ${city.name} (${short} - ${long})
+      `;
+    });
+  }
+
+  slider.addEventListener("input", () => {
+    userDragging = true;
+    lastDragTime = Date.now();
+    updateTimelines();
+  });
+
+  function animateSliderTo(target) {
+    const current = parseInt(slider.value, 10);
+    const steps = 20;
+    const step = (target - current) / steps;
+    let frame = 0;
+
+    const anim = setInterval(() => {
+      frame++;
+      slider.value = current + step * frame;
+      updateTimelines();
+      if (frame >= steps) clearInterval(anim);
+    }, 20);
+  }
+
+  setInterval(() => {
+    if (userDragging && Date.now() - lastDragTime < 10000) return;
+
+    userDragging = false;
+
+    const now = new Date().toLocaleString("en-US", { timeZone: "America/Toronto" });
+    const d = new Date(now);
+    const minutes = d.getHours() * 60 + d.getMinutes();
+
+    animateSliderTo(minutes);
+  }, 1000);
+
+  updateTimelines();
+
+  document.getElementById("darkToggle").onclick = () => {
+    app.classList.toggle("dark");
+  };
+</script>
