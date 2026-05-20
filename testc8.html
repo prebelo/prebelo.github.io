@@ -104,10 +104,10 @@
   }
 
   .shade-day {
-    background:#cfe4ff; /* light grey-blue */
+    background:#cfe4ff;
   }
   .shade-night {
-    background:#123055; /* dark blue */
+    background:#123055;
   }
 
   #worldtime-app.dark .shade-day {
@@ -168,7 +168,11 @@
     { name: "Guangzhou, China", tz: "Asia/Shanghai", flag: "cn" },
     { name: "Melbourne, Australia", tz: "Australia/Melbourne", flag: "au" },
     { name: "Stuttgart, Germany", tz: "Europe/Berlin", flag: "de" },
-    { name: "Phoenix, Arizona", tz: "America/Phoenix", flag: "us" }
+    { name: "Phoenix, Arizona", tz: "America/Phoenix", flag: "us" },
+
+    /* ✅ NEW CITIES ADDED */
+    { name: "Singapore", tz: "Asia/Singapore", flag: "sg" },
+    { name: "Hong Kong", tz: "Asia/Hong_Kong", flag: "hk" }
   ];
 
   const container = document.getElementById("timeline-container");
@@ -216,7 +220,6 @@
   renderTimelines();
 
   function approximateSunTimes(lat) {
-    // Hybrid/approximate: keep simple 6–18, but could vary by latitude if desired
     return { sunrise: 6, sunset: 18 };
   }
 
@@ -225,7 +228,11 @@
     "Asia/Shanghai": 23.1,
     "Australia/Melbourne": -37.8,
     "Europe/Berlin": 48.8,
-    "America/Phoenix": 33.4
+    "America/Phoenix": 33.4,
+
+    /* ✅ NEW LATITUDES ADDED */
+    "Asia/Singapore": 1.3,
+    "Asia/Hong_Kong": 22.3
   };
 
   function getTZLabels(date, tz) {
@@ -294,11 +301,7 @@
       for (let h = 0; h <= 24; h++) {
         const left = (h / 24) * 100;
         const tick = document.createElement("div");
-        if (h % 3 === 0) {
-          tick.className = "tick-major";
-        } else {
-          tick.className = "tick-minor";
-        }
+        tick.className = (h % 3 === 0) ? "tick-major" : "tick-minor";
         tick.style.left = left + "%";
         bar.appendChild(tick);
       }
